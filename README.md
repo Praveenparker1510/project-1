@@ -2,40 +2,14 @@
 
 #IMPORTING WANTED MODULES
 1.from selenium import webdriver
-Purpose: This imports the webdriver module from the selenium package.
-Usage: It allows you to control a web browser programmatically. You can open a browser (like Chrome, Firefox, etc.), navigate to websites, and interact with the pages.
-
 2. from selenium.webdriver import ActionChains
-Purpose: This imports ActionChains, a class in Selenium that allows you to simulate complex user interactions with the browser.
-Usage: You can use ActionChains to perform actions like mouse movements, clicks, key presses, and drag-and-drop operations.
-
 3. from selenium.webdriver.common.by import By
-Purpose: The By class helps you locate elements on the web page by various methods.
-Usage: You can use By to find elements by ID, class name, tag name, XPath, CSS selector, etc.
-
 4. from selenium.webdriver.common.keys import Keys
-Purpose: This imports the Keys class from selenium.webdriver.common.keys.
-Usage: It is used to simulate key presses (e.g., ENTER, ESC, TAB, etc.). For example, sending a Keys.RETURN to submit a form.
-
 5. from selenium.common.exceptions import TimeoutException, NoSuchElementException
-Purpose: This imports exceptions that can be raised by Selenium during the execution of your script.
-TimeoutException: Raised when an element could not be found in the allotted time (often used with waits).
-NoSuchElementException: Raised when an element cannot be located on the page.
-Usage: You use these exceptions to handle errors when elements take too long to load or do not exist.
-
 6. import time
-Purpose: This imports the time module from Python's standard library.
-Usage: You can use it to introduce delays in your script with time.sleep(seconds), which is useful for waiting for elements to load or perform actions slowly in between interactions.
-
 7. import pandas as pd
-Purpose: This imports the pandas library as pd. Pandas is a powerful data manipulation and analysis library.
-Usage: You can use Pandas to work with structured data (e.g., CSV files, data frames). In web scraping, it’s often used to store scraped data in a structured tabular format.
 8. from selenium.webdriver.support.ui import WebDriverWait
-Purpose: This imports the WebDriverWait class from selenium.webdriver.support.ui.
-Usage: It allows you to wait for certain conditions to be true before continuing the execution of the script. For example, waiting for an element to become visible or clickable before interacting with it.
 9. from selenium.webdriver.support import expected_conditions as EC
-Purpose: This imports expected_conditions, often referred to as EC.
-Usage: This module contains conditions that can be used with WebDriverWait to wait for certain events or conditions. For example, you can wait for an element to be present in the DOM, visible, or clickable.
 
 Summary
 In short, this script imports various modules to:
@@ -51,21 +25,84 @@ These libraries and modules work together to automate web browsing tasks, common
 
 #open the browser
 driver_A=webdriver.Chrome()
-Explanation: This creates a new instance of a Chrome browser using the Chrome driver from Selenium's webdriver module.
-Details: webdriver.Chrome() launches the Chrome browser, which can now be controlled programmatically.
-Driver: Make sure that you have the appropriate ChromeDriver executable installed and its path is correctly set in your environment variables, or you can specify the path directly.
-
 #load the webpage
 driver_A.get("https://www.redbus.in/online-booking/apsrtc/?utm_source=rtchometile")
-Explanation: This command loads the specified URL (https://www.redbus.in/online-booking/apsrtc/?utm_source=rtchometile) in the browser.
-Details: The get() method opens the webpage in the browser instance and waits until the page is completely loaded.
-
 time.sleep(3)
-Explanation: This introduces a delay of 3 seconds in the script after the page has loaded.
-Details: time.sleep(3) pauses the execution for 3 seconds, which can be useful if you need to wait for elements to load on the page before performing any actions. However, it's usually better to use explicit waits (e.g., WebDriverWait) instead of time.sleep() to wait for specific conditions, as it makes the script more efficient.
-
 4. driver_A.maximize_window()
-Explanation: This maximizes the browser window to full-screen.
-Details: This ensures the browser window is not in a minimized or small state and is fully visible on your screen. It can be useful when interacting with elements that may be hidden or inaccessible in smaller windows.
 
+Summary of Actions
+Open the Browser: webdriver.Chrome() opens a new Chrome browser instance.
+Load the Webpage: driver_A.get("https://www.redbus.in/...") loads the specified URL.
+Wait for 3 Seconds: time.sleep(3) pauses the execution for 3 seconds to give the webpage time to load completely.
+Maximize the Browser Window: driver_A.maximize_window() maximizes the browser window to ensure full-screen mode.
 # Retrieve bus links and route
+
+1. WebDriverWait Setup
+wait = WebDriverWait(driver_A, 20)
+2. Function Definition
+3. Loop to Handle Pagination (5 Pages)
+for i in range(1, 6):
+    paths = driver_A.find_elements(By.XPATH, path)
+4. Extracting Bus Route Links (URLs)
+for links in paths:
+    d = links.get_attribute("href")
+    ANDHRA_LINKS.append(d)
+5. Extracting Bus Route Names
+for route in paths:
+    ANDHRA_ROUTES.append(route.text)
+6. Handling Pagination (Next Page)
+try:
+    pagination = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@class="DC_117_paginationTable"]')))
+    next_button = pagination.find_element(By.XPATH, f'//div[@class="DC_117_pageTabs " and text()="{i + 1}"]')
+    time.sleep(3)  
+    next_button.click()
+7. Handling the End of Pagination (Break Condition)
+except NoSuchElementException:
+    print(f"No more pages to paginate at step {i}")
+    break
+except NoSuchElementException:: If the pagination element is not found (i.e., there are no more pages), the NoSuchElementException is caught.
+8. Returning the Data
+return ANDHRA_LINKS, ANDHRA_ROUTES
+10. Calling the Function
+ANDHRA_LINKS, ANDHRA_ROUTES = Andhra_Route_Link("//a[@class='route']")
+
+Summary of the Process
+Setup WebDriverWait: Prepare to wait for elements to load with a timeout of 20 seconds.
+Function Andhra_Route_Link(path):
+Iterate through Pages: A loop handles pagination, scraping 5 pages of bus routes.
+Extract Links and Route Names: For each page, the function extracts both the URLs (links) and the text (names) of the bus routes.
+Navigate to the Next Page: The script clicks the "Next" button to go to the next page, waiting for the pagination elements to load.
+Handle End of Pagination: The function gracefully handles when there are no more pages by catching the NoSuchElementException.
+Return Data: After scraping all the pages, the function returns the list of bus route links and names.
+
+#stores that datas in dataframe
+df_A=pd.DataFrame({"Route_name":ANDHRA_ROUTES,"Route_link":ANDHRA_LINKS})
+df_A
+
+Summary
+This lines creates a Pandas DataFrame where:
+"Route_name" column contains the names of the bus routes.
+"Route_link" column contains the links to those routes.
+The resulting df_A is a tabular structure that you can work with, perform analysis on, or save/export in various formats (like CSV, Excel, etc.).
+
+#change DataFrame to csv
+path = r"C:/Users/sridh/OneDrive/Desktop/redbus/routes_link/df_A.csv"
+df_A.to_csv(path,index=False)
+
+Summary:
+Path to save the CSV: The variable path holds the directory path where you want to save the CSV file. It uses the raw string format (r"...") to handle the backslashes in the file path properly.
+
+Saving DataFrame:  saves the Pandas DataFrame  at the specified path without including the index.
+
+#Like this one state bus routes and links we have to extract all the states buses routes and bus links details.
+
+#concat all the bus link and route names in one dataframe
+df=pd.concat([df_A,df_k,df_T,df_G,df_R,df_H,df_SB,df_AS,df_UP,df_WB],ignore_index=True)
+df
+
+Summary:
+pd.concat() combines multiple DataFrames vertically (stacking them on top of each other).
+ignore_index=True reindexes the resulting DataFrame to ensure that the index is continuous across all rows.
+The result is a single DataFrame containing all the rows from the original DataFrames with a clean, sequential index.
+
+also we have save this all buses routes and links data in one csv file for later use.
