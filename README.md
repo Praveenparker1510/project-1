@@ -505,101 +505,45 @@ Error Handling: It's crucial to handle database errors properly to avoid data co
 import pandas as pd
 import mysql.connector
 import streamlit as slt
-from streamlit_option_menu import option_menu
-import plotly.express as px
-import time
-2. Reading the CSV File (df_k.csv):
-df_k = pd.read_csv("df_k.csv")
-3. Extracting Route Names into a List:
-Lists_k = []
-for i, r in df_k.iterrows():
-    Lists_k.append(r["Route_name"])
 
-Summary:
-Libraries: Various libraries are imported for data processing (pandas), database interaction (mysql.connector), creating web apps (streamlit), and data visualization (plotly.express).
-Data Reading: The csv file is read into a pandas DataFrame 
-Extract Route Names: A loop iterates through each row of the csv file, extracting the bus route names from the Route_name column and appending them to the list.
+2. MySQL Connection Function
+create_connection(): This function attempts to connect to the MySQL database.
+Error Handling: If an error occurs during connection (e.g., incorrect credentials or server issues), it catches the exception and displays an error message using st.error().
+Return Value: It returns the connection object if successful; otherwise, it returns None.
 
-WE WANT TO READ AND EXTRACT ALL CSV FILE AND SAVE IT TO LISTS
+3. Load Data from the Database
+load_data(): This function retrieves data from the bus_details table in the MySQL database.
+Query Execution: Uses pd.read_sql() to execute the query and load the results into a DataFrame.
+Connection Closure: Ensures the connection is closed in the finally block, even if an error occurs.
+Return Value: If successful, it returns the DataFrame; otherwise, it returns an empty DataFrame.
 
-#SETTING UP STREAMLIT PAGE:
+4. Filter Application Function
+apply_filters(): This function filters the DataFrame based on user-selected criteria.
+Filtering Logic:
+Checks if the user selected a specific bus name or bus type; if not, it keeps all options.
+Applies filters for price, ratings, and seat availability based on user input.
+Return Value: It returns the filtered DataFrame.
 
-1. Streamlit Page Configuration
-slt.set_page_config(layout="wide")
-2. Navigation Menu
-web = option_menu(menu_title="🚌OnlineBus",
-                  options=["Home", "📍States and Routes"],
-                  icons=["house", "info-circle"],
-                  orientation="horizontal")
-3. Home Page Setup
-if web == "Home":
-    slt.image("C:/Users/sridh/Downloads/redbus1-768x509 (1).jpg", width=200)
-    slt.title("RedBus Data Scraping With Selenium & Dynamic Filtering Using Streamlit")
-    slt.subheader(":blue[Domain:] Transportation")
-    slt.subheader(":blue[Objective:] ")
-    slt.markdown("The 'Redbus Data Scraping and Filtering with Streamlit Application' aims to revolutionize the transportation industry by providing a comprehensive solution for collecting, analyzing, and visualizing bus travel data...")
-    slt.markdown("Selenium: Selenium WebDriver is a powerful Automation tool widely used for web application testing...")
-    slt.markdown('''Pandas: Pandas library to transform the dataset from CSV format into a structured DataFrame...''')
-    slt.markdown('''MySQL: With help of SQL to establish a connection to a SQL database...''')
-    slt.markdown("Streamlit: Developed an interactive web application using Streamlit...")
-    slt.subheader(":blue[Skill-take:]")
-    slt.markdown("Selenium, Python, Pandas, MySQL, mysql-connector-python, Streamlit.")
-4. States and Routes Page Setup
-if web == "📍States and Routes":
-    S = slt.selectbox("Lists of States", ["Kerela", "Andhra", "Telungana", "Goa", "Rajasthan", "SouthBengal", "Haryana", "Assam", "UttarPradesh", "WestBengal"])
-    
-    select_fare = slt.radio("Choose bus fare range", ("50-1000", "1000-2500", "2500 and above"))
-5. Bus Fare Filtering
+5. Load Data and Setup Streamlit Application
+Load Data: Calls load_data() to fetch the bus details.
+Title: Sets the title of the Streamlit app.
+Data Availability Check: If the DataFrame is empty, it shows an error message. If data is available, it continues with creating filters.
 
-if S == "Kerela":
-    K = slt.selectbox("List of routes", Lists_k)
+6. Sidebar Filters
+Route Filter: Allows the user to select a route.
+Bus Name and Type Filters: Optional filters for bus name and type, dynamically populated based on the selected route.
+Price and Star Rating Sliders: Allows users to set ranges for price and ratings. The maximum value for the price slider is determined based on the maximum price available in the filtered data.
 
-    if select_fare == "50-1000":
-        conn = mysql.connector.connect(host="localhost", user="root", password="", database="RED_BUS_DETAILS")
-        my_cursor = conn.cursor()
-        query = f'''select * from bus_details
-                    where Price Between 50 and 1000 and Route_name = "{K}"
-                    order by Price desc'''
-        my_cursor.execute(query)
-        out = my_cursor.fetchall()
-        df = pd.DataFrame(out, columns=["ID", "Bus_name", "Bus_type", "Starting_Time", "Ending_Time", "Total_Duration",
-                                        "Price", "Seats_Available", "Ratings", "Route_link", "Route_name"])
-        slt.write(df)
-6. Additional Fare Filters
-if select_fare == "1000-2500":
-    conn = mysql.connector.connect(host="localhost", user="root", password="", database="RED_BUS_DETAILS")
-    my_cursor = conn.cursor()
-    query = f'''select * from bus_details
-                where Price Between 1000 and 2500 and Route_name = "{K}"
-                order by Price desc'''
-    my_cursor.execute(query)
-    out = my_cursor.fetchall()
-    df = pd.DataFrame(out, columns=["ID", "Bus_name", "Bus_type", "Starting_Time", "Ending_Time", "Total_Duration",
-                                    "Price", "Seats_Available", "Ratings", "Route_link", "Route_name"])
-    slt.write(df)
-7. Fare Range Above 2500
-if select_fare == "2500 and above":
-    conn = mysql.connector.connect(host="localhost", user="root", password="", database="RED_BUS_DETAILS")
-    my_cursor = conn.cursor()
-    query = f'''select * from bus_details
-                where Price > 2500 and Route_name = "{K}"
-                order by Price desc'''
-    my_cursor.execute(query)
-    out = my_cursor.fetchall()
-    df = pd.DataFrame(out, columns=["ID", "Bus_name", "Bus_type", "Starting_Time", "Ending_Time", "Total_Duration",
-                                    "Price", "Seats_Available", "Ratings", "Route_link", "Route_name"])
-    slt.write(df)
+7. Cleaning and Setting Seat Availability
+Data Cleaning: Removes non-numeric text from the Seats_Available column to ensure it contains only integers. This is crucial for setting the maximum value for the slider.
+Max Value Setting: Determines the maximum value for the seat availability slider based on the cleaned data.
 
-Summary:
-Streamlit Layout: The app has two pages: "Home" for project details and "📍States and Routes" for interactive bus route filtering based on fare range.
-Dynamic Filtering: On the "States and Routes" page, users can:
-Select a state (e.g., Kerala).
-Choose a fare range (e.g., "50-1000").
-View the filtered results of bus routes based on the selected criteria.
-SQL Queries: The app queries the MySQL database to fetch and display the relevant bus details based on the user’s choices (state, route, fare range).
-Interaction: The user interface is interactive, providing dropdowns for states and routes and radio buttons for fare ranges, allowing dynamic data filtering.
+8. Apply Filters and Display Results
+Apply Filters: Calls the apply_filters() function to get the filtered DataFrame based on user selections.
+Display Results: Shows the filtered data in the app. If no data matches the filters, it displays a message indicating that no results were found.
 
-WE WANT TO DO ALL STATES BUSES DETAILS FOR STREAMLIT PAGE CONNECTION SAME LIKE THE PREVIOUS ONE.
+9. Adding a Video
+Video Embedding: Displays a video (a YouTube link in this case) in the app, which can provide additional context or information to users.
 
 BY ALL COMPLETING THIS, WE HAVE CREATE NEW TERMINAL AND TYPE STREAMLIT RUN REDBUS.PY IN THE COMMAND PROMPT
 
